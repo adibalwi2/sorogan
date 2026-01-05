@@ -1,176 +1,160 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Setoran Sorogan Al-Qur'an</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
-
 <style>
 body {
-  background:#f1f5f9;
-  font-family:system-ui;
+  font-family: Arial, sans-serif;
+  background: #f2f4f8;
+  margin: 0;
+  padding: 16px;
 }
-.card {
-  background:#ffffff;
-  border-radius:14px;
-  padding:16px;
-  box-shadow:0 4px 8px rgba(0,0,0,.1);
+h2 {
+  text-align: center;
+}
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.mode-toggle button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  background: #d1d5db;
+}
+.mode-toggle .active {
+  background: #16a34a;
+  color: white;
+}
+.btn-add {
+  background: #16a34a;
+  color: white;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+.santri-card {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+}
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+textarea {
+  resize: vertical;
+}
+.btn-delete {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="app" class="max-w-md mx-auto min-h-screen p-4">
+<h2>Setoran Sorogan Al-Qur'an</h2>
 
-<h1 class="text-2xl font-bold text-center mb-4">
-Setoran Sorogan Al-Qur'an
-</h1>
-
-<!-- MODE -->
-<div class="flex gap-2 mb-4">
-  <button onclick="setMode('bin')" class="flex-1 bg-green-600 text-white py-2 rounded">
-    Bin Nadzor
-  </button>
-  <button onclick="setMode('amma')" class="flex-1 bg-gray-300 py-2 rounded">
-    Juz Amma
-  </button>
+<div class="mode-toggle">
+  <button id="btnBin" class="active" onclick="setMode('bin')">Bin Nadzor</button>
+  <button id="btnAmma" onclick="setMode('amma')">Juz Amma</button>
 </div>
 
-<button onclick="addStudent()" class="w-full bg-green-700 text-white py-3 rounded-lg mb-4">
-➕ Tambah Santri
-</button>
+<button class="btn-add" onclick="tambahSantri()">➕ Tambah Santri</button>
 
-<div id="studentList"></div>
-
-</div>
+<div id="listSantri"></div>
 
 <script>
-// ================= DATA QURAN (CONTOH) =================
-const quranData = {
-  1: { "Al-Fatihah":7, "Al-Baqarah":141 },
-  2: { "Al-Baqarah":286 },
-  30: { "An-Naba":40, "An-Naziat":46, "Abasa":42 }
-};
-
-// ================= STORAGE =================
-const STORAGE_KEY = "sorogan_data";
-let students = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let mode = "bin";
+let nomor = 1;
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+function setMode(selected) {
+  mode = selected;
+  btnBin.classList.remove("active");
+  btnAmma.classList.remove("active");
+
+  selected === "bin" ? btnBin.classList.add("active") : btnAmma.classList.add("active");
+
+  document.querySelectorAll(".santri-card").forEach(updateSurat);
 }
 
-// ================= RENDER =================
-function render() {
-  const box = document.getElementById("studentList");
-  box.innerHTML = "";
+function tambahSantri() {
+  const div = document.createElement("div");
+  div.className = "santri-card";
 
-  students.forEach((s, i) => {
-    box.innerHTML += `
-      <div class="card mb-4">
+  div.innerHTML = `
+    <strong>Santri ${nomor++}</strong>
+    <input placeholder="Nama Santri">
 
-        <input class="w-full border p-2 rounded mb-2 font-bold"
-          value="${s.name}"
-          onchange="s.name=this.value;save()">
+    <select>
+      ${[...Array(30)].map((_,i)=>`<option>${i+1}</option>`).join("")}
+    </select>
 
-        <select class="w-full border p-2 mb-2"
-          onchange="s.juz=this.value;updateSurat(${i})">
-          ${Object.keys(quranData).map(j =>
-            `<option ${j==s.juz?'selected':''}>${j}</option>`
-          ).join("")}
-        </select>
+    <select class="surat"></select>
 
-        <select id="surat${i}" class="w-full border p-2 mb-2"
-          onchange="s.surat=this.value;updateAyat(${i})"></select>
+    <select>
+      ${[...Array(20)].map((_,i)=>`<option>Ayat ${i+1}</option>`).join("")}
+    </select>
 
-        <select id="ayat${i}" class="w-full border p-2 mb-2"
-          onchange="s.ayat=this.value;save()"></select>
+    🎯 <strong>Target Halaman (1 juz = 10 halaman)</strong>
+    <select>
+      ${[...Array(10)].map((_,i)=>`<option>${i+1}</option>`).join("")}
+    </select>
 
-        <p class="text-sm mb-1">
-          🎯 Target Halaman (1 juz = 10 halaman)
-        </p>
+    <textarea placeholder="Catatan perhatian ustadz"></textarea>
 
-        <select class="w-full border p-2 mb-2"
-          onchange="s.page=this.value;save()">
-          ${[1,2,3,4,5,6,7,8,9,10].map(p =>
-            `<option ${p==s.page?'selected':''}>${p}</option>`
-          ).join("")}
-        </select>
+    <button class="btn-delete" onclick="this.parentElement.remove()">Hapus</button>
+  `;
 
-        <textarea class="w-full border p-2 mb-2"
-          placeholder="Catatan perhatian ustadz"
-          oninput="s.note=this.value;save()">${s.note||""}</textarea>
-
-        <button onclick="hapus(${i})"
-          class="bg-red-500 text-white px-3 py-1 rounded">
-          Hapus
-        </button>
-
-      </div>
-    `;
-    updateSurat(i, true);
-  });
+  document.getElementById("listSantri").appendChild(div);
+  updateSurat(div);
 }
 
-// ================= DROPDOWN LOGIC =================
-function updateSurat(i, keep=false) {
-  const surat = document.getElementById("surat"+i);
-  surat.innerHTML = "";
-  Object.keys(quranData[students[i].juz]).forEach(s => {
-    surat.innerHTML += `<option>${s}</option>`;
-  });
-  if (!keep) students[i].surat = surat.value;
-  updateAyat(i, keep);
-}
+function updateSurat(card) {
+  const select = card.querySelector(".surat");
+  select.innerHTML = "";
 
-function updateAyat(i, keep=false) {
-  const ayat = document.getElementById("ayat"+i);
-  ayat.innerHTML = "";
-  const max = quranData[students[i].juz][students[i].surat];
-  for (let a=1; a<=max; a++) {
-    ayat.innerHTML += `<option>${a}</option>`;
-  }
-  if (!keep) students[i].ayat = 1;
-  save();
-}
-
-// ================= MODE =================
-function setMode(m) {
-  mode = m;
-  if (m === "amma") {
-    students.forEach(s => s.juz = 30);
-  }
-  save();
-  render();
-}
-
-// ================= CRUD =================
-function addStudent() {
-  students.push({
-    name: "Santri " + (students.length + 1),
-    juz: mode === "amma" ? 30 : 1,
-    surat: "Al-Fatihah",
-    ayat: 1,
-    page: 1,
-    note: ""
-  });
-  save();
-  render();
-}
-
-function hapus(i) {
-  if (confirm("Hapus santri?")) {
-    students.splice(i, 1);
-    save();
-    render();
+  if (mode === "amma") {
+    [
+      "An-Naba","An-Naziat","Abasa","At-Takwir","Al-Infitar",
+      "Al-Mutaffifin","Al-Insyiqaq","Al-Buruj","At-Tariq",
+      "Al-A'la","Al-Ghasyiyah","Al-Fajr","Al-Balad",
+      "Asy-Syams","Al-Lail","Ad-Duha","Asy-Syarh",
+      "At-Tin","Al-Alaq","Al-Qadr","Al-Bayyinah",
+      "Az-Zalzalah","Al-Adiyat","Al-Qariah","At-Takatsur",
+      "Al-Asr","Al-Humazah","Al-Fil","Quraisy",
+      "Al-Maun","Al-Kautsar","Al-Kafirun","An-Nasr",
+      "Al-Lahab","Al-Ikhlas","Al-Falaq","An-Nas"
+    ].forEach(s => {
+      let o = document.createElement("option");
+      o.textContent = s;
+      select.appendChild(o);
+    });
+  } else {
+    let o = document.createElement("option");
+    o.textContent = "Isi sesuai mushaf Bin Nadzor";
+    select.appendChild(o);
   }
 }
-
-render();
 </script>
 
 </body>
