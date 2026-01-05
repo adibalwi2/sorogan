@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setoran Sorogan Al-Qur'an</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body {
+  background:#f1f5f9;
+  font-family:system-ui;
+}
+.card {
+  background:#ffffff;
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 4px 8px rgba(0,0,0,.1);
+}
+</style>
+</head>
+
+<body>
+
+<div id="app" class="max-w-md mx-auto min-h-screen p-4">
+
+<h1 class="text-2xl font-bold text-center mb-4">
+Setoran Sorogan Al-Qur'an
+</h1>
+
+<!-- MODE -->
+<div class="flex gap-2 mb-4">
+  <button onclick="setMode('bin')" class="flex-1 bg-green-600 text-white py-2 rounded">
+    Bin Nadzor
+  </button>
+  <button onclick="setMode('amma')" class="flex-1 bg-gray-300 py-2 rounded">
+    Juz Amma
+  </button>
+</div>
+
+<button onclick="addStudent()" class="w-full bg-green-700 text-white py-3 rounded-lg mb-4">
+➕ Tambah Santri
+</button>
+
+<div id="studentList"></div>
+
+</div>
+
+<script>
+// ================= DATA QURAN (CONTOH) =================
+const quranData = {
+  1: { "Al-Fatihah":7, "Al-Baqarah":141 },
+  2: { "Al-Baqarah":286 },
+  30: { "An-Naba":40, "An-Naziat":46, "Abasa":42 }
+};
+
+// ================= STORAGE =================
+const STORAGE_KEY = "sorogan_data";
+let students = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let mode = "bin";
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+}
+
+// ================= RENDER =================
+function render() {
+  const box = document.getElementById("studentList");
+  box.innerHTML = "";
+
+  students.forEach((s, i) => {
+    box.innerHTML += `
+      <div class="card mb-4">
+
+        <input class="w-full border p-2 rounded mb-2 font-bold"
+          value="${s.name}"
+          onchange="s.name=this.value;save()">
+
+        <select class="w-full border p-2 mb-2"
+          onchange="s.juz=this.value;updateSurat(${i})">
+          ${Object.keys(quranData).map(j =>
+            `<option ${j==s.juz?'selected':''}>${j}</option>`
+          ).join("")}
+        </select>
+
+        <select id="surat${i}" class="w-full border p-2 mb-2"
+          onchange="s.surat=this.value;updateAyat(${i})"></select>
+
+        <select id="ayat${i}" class="w-full border p-2 mb-2"
+          onchange="s.ayat=this.value;save()"></select>
+
+        <p class="text-sm mb-1">
+          🎯 Target Halaman (1 juz = 10 halaman)
+        </p>
+
+        <select class="w-full border p-2 mb-2"
+          onchange="s.page=this.value;save()">
+          ${[1,2,3,4,5,6,7,8,9,10].map(p =>
+            `<option ${p==s.page?'selected':''}>${p}</option>`
+          ).join("")}
+        </select>
+
+        <textarea class="w-full border p-2 mb-2"
+          placeholder="Catatan perhatian ustadz"
+          oninput="s.note=this.value;save()">${s.note||""}</textarea>
+
+        <button onclick="hapus(${i})"
+          class="bg-red-500 text-white px-3 py-1 rounded">
+          Hapus
+        </button>
+
+      </div>
+    `;
+    updateSurat(i, true);
+  });
+}
+
+// ================= DROPDOWN LOGIC =================
+function updateSurat(i, keep=false) {
+  const surat = document.getElementById("surat"+i);
+  surat.innerHTML = "";
+  Object.keys(quranData[students[i].juz]).forEach(s => {
+    surat.innerHTML += `<option>${s}</option>`;
+  });
+  if (!keep) students[i].surat = surat.value;
+  updateAyat(i, keep);
+}
+
+function updateAyat(i, keep=false) {
+  const ayat = document.getElementById("ayat"+i);
+  ayat.innerHTML = "";
+  const max = quranData[students[i].juz][students[i].surat];
+  for (let a=1; a<=max; a++) {
+    ayat.innerHTML += `<option>${a}</option>`;
+  }
+  if (!keep) students[i].ayat = 1;
+  save();
+}
+
+// ================= MODE =================
+function setMode(m) {
+  mode = m;
+  if (m === "amma") {
+    students.forEach(s => s.juz = 30);
+  }
+  save();
+  render();
+}
+
+// ================= CRUD =================
+function addStudent() {
+  students.push({
+    name: "Santri " + (students.length + 1),
+    juz: mode === "amma" ? 30 : 1,
+    surat: "Al-Fatihah",
+    ayat: 1,
+    page: 1,
+    note: ""
+  });
+  save();
+  render();
+}
+
+function hapus(i) {
+  if (confirm("Hapus santri?")) {
+    students.splice(i, 1);
+    save();
+    render();
+  }
+}
+
+render();
+</script>
+
+</body>
+</html>
